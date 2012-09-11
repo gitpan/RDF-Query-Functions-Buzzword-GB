@@ -1,8 +1,8 @@
 package RDF::Query::Functions::Buzzword::GB;
 
-our $VERSION = '0.001';
+our $VERSION = '0.002';
 
-use common::sense;
+use strict;
 use RDF::Query::Error qw(:try);
 use RDF::Trine::Namespace qw[XSD];
 use Scalar::Util qw[blessed];
@@ -279,35 +279,44 @@ __END__
 
 =head1 NAME
 
-RDF::Query::Functions::Buzzword::Util - plugin for buzzword.org.uk utility functions
+RDF::Query::Functions::Buzzword::GB - plugin for buzzword.org.uk British locale-specific functions
 
 =head1 SYNOPSIS
 
-  use RDF::TrineShortcuts qw[:all];
-  use Data::Dumper;
-  
-  my $data = rdf_parse(<<'TURTLE', type=>'turtle');
+  use RDF::Query;
+  use RDF::TrineX::Functions -shortcuts;
+
+  my $data = rdf_parse(<<'TURTLE', type=>'turtle', base=>$baseuri);
   @prefix foaf: <http://xmlns.com/foaf/0.1/> .
   @prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-  
+
   <http://tobyinkster.co.uk/#i>
-    foaf:name  "Toby Inkster" ;
-    foaf:phone "0123456789 ext 1234" .
+    foaf:name "Toby Inkster" ;
+    foaf:phone "01234567890x1234";
+    foaf:postcode "bn71rs" .
   TURTLE
-  
-  $r = rdf_query(<<'SPARQL', $data);
+
+  my $query = RDF::Query->new(<<'SPARQL');
   PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+  PREFIX sparql: <sparql:>
   PREFIX gb: <http://buzzword.org.uk/2011/functions/gb#>
+  PREFIX util: <http://buzzword.org.uk/2011/functions/util#>
   SELECT
     ?name
+    ?phone
+    ?postcode
+    (gb:postcode_format(?postcode) AS ?pcfmt)
+    (gb:telephone_std(?phone) AS ?phonestd)
+    (gb:telephone_local(?phone) AS ?phonelocal)
+    (gb:telephone_extension(?phone) AS ?phoneext)
     (gb:telephone_uri(?phone) AS ?phoneuri)
   WHERE
   {
-    ?person foaf:name ?name ; foaf:phone ?phone .
+    ?person foaf:name ?name ; foaf:phone ?phone ; foaf:postcode ?postcode .
   }
   SPARQL
-  
-  print Dumper(flatten_iterator($r, literal_as=>'ntriples'));
+
+  print $query->execute($data)->as_xml;
 
 =head1 DESCRIPTION
 
@@ -362,11 +371,17 @@ An existing E<lt>tel:E<gt> URI should pass through unscathed.
 
 =back
 
+=begin trustme
+
+=item C<install>
+
+=end trustme
+
 =head1 SEE ALSO
 
 L<RDF::Query>.
 
-L<http://perlrdf.org/>.
+L<http://www.perlrdf.org/>.
 
 =head1 AUTHOR
 
@@ -374,7 +389,7 @@ Toby Inkster E<lt>tobyink@cpan.orgE<gt>.
 
 =head1 COPYRIGHT
 
-Copyright 2004-2011 Toby Inkster
+Copyright 2004-2012 Toby Inkster
 
 This library is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.
